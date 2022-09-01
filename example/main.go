@@ -7,15 +7,23 @@ import (
 )
 
 func main() {
-	r := lib.New()
+	r := lib.New("v1.0.0")
 	r.Use(MiddlewareLogger(), MiddlewareError())
 
-	r.GET("/ping", func(w http.ResponseWriter, r *http.Request) error {
+	g := r.Group("/group")
+	g.GET("/ping", func(w http.ResponseWriter, r *http.Request) error {
 		name := interfaces.GetQuery(r, "name")
 		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
 			"query": name,
 		})
 	})
 
-	r.Run("8080")
+	r.GET("/test", func(w http.ResponseWriter, r *http.Request) error {
+		name := interfaces.GetQuery(r, "name")
+		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
+			"test": name,
+		})
+	})
+
+	r.Run("8081")
 }

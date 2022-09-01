@@ -10,6 +10,7 @@ var logger loggerInterfaces.Logger
 func init() {
 	logger = log.NewLib()
 	logger.Init("HTTP Router")
+	logger.SetOutputFormat(loggerInterfaces.OutputFormatDefault)
 }
 
 func GetLogger() loggerInterfaces.Logger {

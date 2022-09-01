@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"fmt"
 	"github.com/fajarardiyanto/flt-go-router/interfaces"
 	"strings"
 )
@@ -40,7 +41,7 @@ func NewTree() *Tree {
 }
 
 // Add use `pattern` 、 Handle 、 Middleware stack as node register to tree
-func (t *Tree) Add(pattern string, handle interfaces.Handler, middleware ...interfaces.MiddlewareFunc) {
+func (t *Tree) Add(method, pattern string, handle interfaces.Handler, middleware ...interfaces.MiddlewareFunc) {
 	var currentNode = t.Root
 
 	if pattern != currentNode.Key {
@@ -67,6 +68,12 @@ func (t *Tree) Add(pattern string, handle interfaces.Handler, middleware ...inte
 	currentNode.Handle = handle
 	currentNode.IsPattern = true
 	currentNode.Path = pattern
+
+	path := strings.ReplaceAll(pattern, "//", "/")
+	path = "/" + path
+
+	paths := fmt.Sprintf("    ==>   [%s]   %s", method, path)
+	fmt.Println(paths)
 }
 
 // Find returns nodes that the request match the route pattern

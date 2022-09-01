@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"fmt"
 	loggerInterfaces "github.com/fajarardiyanto/flt-go-logger/interfaces"
 	log "github.com/fajarardiyanto/flt-go-logger/lib"
 	"github.com/fajarardiyanto/flt-go-router/interfaces"
@@ -12,21 +13,32 @@ import (
 )
 
 type Router struct {
-	Logger       loggerInterfaces.Logger
 	Prefix       string
+	Logger       loggerInterfaces.Logger
 	Middleware   []interfaces.MiddlewareFunc
 	Trees        map[string]*tree.Tree
 	NotFound     interfaces.Handler
 	PanicHandler func(w http.ResponseWriter, r *http.Request, err interface{})
 }
 
-func New() interfaces.Routers {
+func New(version string) interfaces.Routers {
 	logger := log.NewLib()
 	logger.Init("HTTP Router")
+	logger.SetOutputFormat(loggerInterfaces.OutputFormatDefault)
+
+	interfaces.ShowVersion(version)
 
 	return &Router{
 		Logger: logger,
 		Trees:  make(map[string]*tree.Tree),
+	}
+}
+
+func (r *Router) Group(prefix string) interfaces.Routers {
+	return &Router{
+		Prefix:     prefix,
+		Trees:      r.Trees,
+		Middleware: r.Middleware,
 	}
 }
 
@@ -50,20 +62,12 @@ func (r *Router) PATCH(path string, handle interfaces.Handler) {
 	r.Handle(http.MethodPatch, path, handle)
 }
 
-func (r *Router) Group(prefix string) interfaces.Routers {
-	return &Router{
-		Prefix:     prefix,
-		Trees:      r.Trees,
-		Middleware: r.Middleware,
-	}
-}
-
 func (r *Router) Run(addr ...string) {
 	address := interfaces.ResolveAddress(addr, r.Logger)
 	if address == ":" {
 		r.Logger.Error("port can't be empty").Quit()
 	}
-
+	fmt.Println()
 	r.Logger.Info("Listening and serving HTTP on %s", address)
 
 	if err := http.ListenAndServe(address, r); err != nil {
@@ -94,7 +98,7 @@ func (r *Router) Handle(method string, path string, handle interfaces.Handler) {
 		path = r.Prefix + "/" + path
 	}
 
-	treeMethod.Add(path, handle, r.Middleware...)
+	treeMethod.Add(method, path, handle, r.Middleware...)
 }
 
 func (r *Router) Use(middleware ...interfaces.MiddlewareFunc) {
@@ -124,12 +128,12 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		node := nodes[0]
 		if node.Handle != nil {
 			if node.Path == requestUrl {
-				r.Logger.Trace("[%s][%s]", req.Method, node.Path)
+				r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
 				handle(w, req, node.Handle, node.Middleware)
 				return
 			}
 			if node.Path == requestUrl[1:] {
-				r.Logger.Trace("[%s][%s]", req.Method, node.Path)
+				r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
 				handle(w, req, node.Handle, node.Middleware)
 				return
 			}
@@ -143,7 +147,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		for _, n := range node {
 			if handler := n.Handle; handler != nil && n.Path != requestUrl {
 				if matchParamsMap, ok := r.MatchAndParse(requestUrl, n.Path); ok {
-					r.Logger.Trace("[%s][%s]", req.Method, res[1])
+					r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
 					ctx := context.WithValue(req.Context(), interfaces.ContextKey, matchParamsMap)
 					req = req.WithContext(ctx)
 					handle(w, req, handler, n.Middleware)

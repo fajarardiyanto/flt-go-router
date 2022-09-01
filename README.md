@@ -1,5 +1,12 @@
 ### Go Module Router
-
+```
+  _____.__   __                       .___    .__          
+_/ ____\  |_/  |_    _____   ____   __| _/_ __|  |   ____  
+\   __\|  |\   __\  /     \ /  _ \ / __ |  |  \  | _/ __ \ 
+ |  |  |  |_|  |   |  Y Y  (  <_> ) /_/ |  |  /  |_\  ___/ 
+ |__|  |____/__|   |__|_|  /\____/\____ |____/|____/\___  >
+                         \/            \/               \/   
+```
 ### Installation
 ```sh
 go get github.com/fajarardiyanto/flt-go-router
@@ -26,17 +33,25 @@ import (
 )
 
 func main() {
-	r := lib.New()
+	r := lib.New("v1.0.0")
 	r.Use(MiddlewareLogger(), MiddlewareError())
 
-	r.GET("/ping", func(w http.ResponseWriter, r *http.Request) error {
+	g := r.Group("/group")
+	g.GET("/ping", func(w http.ResponseWriter, r *http.Request) error {
 		name := interfaces.GetQuery(r, "name")
 		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
 			"query": name,
 		})
 	})
 
-	r.Run("8080")
+	r.GET("/test", func(w http.ResponseWriter, r *http.Request) error {
+		name := interfaces.GetQuery(r, "name")
+		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
+			"test": name,
+		})
+	})
+
+	r.Run("8081")
 }
 ```
 
