@@ -1,21 +1,18 @@
 package interfaces
 
 import (
+	loggerInterfaces "github.com/fajarardiyanto/flt-go-logger/interfaces"
+	log "github.com/fajarardiyanto/flt-go-logger/lib"
 	"net/http"
 )
 
-// KeyContext describe key type for ngamux context
-type KeyContext int
-
-const (
-	// KeyContextParams is key context for url params
-	KeyContextParams KeyContext = 1 << iota
-)
-
 var (
-	DefaultPattern = `[\w]+`
-	IDPattern      = `[\d]+`
-	IDKey          = `id`
+	logger loggerInterfaces.Logger
+
+	// DefaultPattern is pattern params query
+	// [\w-]+
+	// ([0-9a-zA-Z\\.\\_-]+)
+	DefaultPattern = `[\w._-]+`
 
 	METHOD = map[string]struct{}{
 		http.MethodGet:    {},
@@ -25,3 +22,13 @@ var (
 		http.MethodPatch:  {},
 	}
 )
+
+func init() {
+	logger = log.NewLib()
+	logger.Init("HTTP Router")
+	logger.SetOutputFormat(loggerInterfaces.OutputFormatDefault)
+}
+
+func GetLogger() loggerInterfaces.Logger {
+	return logger
+}

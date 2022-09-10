@@ -19,7 +19,7 @@ go get -u github.com/fajarardiyanto/flt-go-router
 
 ###### Upgrade or downgrade with tag version if available
 ```sh
-go get -u github.com/fajarardiyanto/flt-go-router@v0.0.1
+go get -u github.com/fajarardiyanto/flt-go-router@v0.0.2
 ```
 
 ### Usage
@@ -44,10 +44,15 @@ func main() {
 		})
 	})
 
-	r.GET("/test", func(w http.ResponseWriter, r *http.Request) error {
-		name := interfaces.GetQuery(r, "name")
+	r.GET("/test/:id/:guid", func(w http.ResponseWriter, r *http.Request) error {
+		name := interfaces.GetFormData(r, "name")
+		id := interfaces.GetParam(r, "id")
+		guid := interfaces.GetParam(r, "guid")
+
 		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
+			"id":   id,
 			"test": name,
+			"guid": guid,
 		})
 	})
 

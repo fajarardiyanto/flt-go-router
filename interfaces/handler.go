@@ -1,6 +1,8 @@
 package interfaces
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type MiddlewareFunc func(next Handler) Handler
 type Handler func(rw http.ResponseWriter, r *http.Request) error

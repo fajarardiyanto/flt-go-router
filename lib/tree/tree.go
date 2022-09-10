@@ -56,6 +56,8 @@ func (t *Tree) Add(method, pattern string, handle interfaces.Handler, middleware
 					node.Middleware = append(node.Middleware, middleware...)
 				}
 				currentNode.Children[key] = node
+			} else {
+				panic("a handle is already registered for path '" + pattern + "'")
 			}
 			currentNode = node
 		}

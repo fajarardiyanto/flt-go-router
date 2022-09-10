@@ -39,10 +39,10 @@ type Routers interface {
 	Use(middleware ...MiddlewareFunc)
 
 	// HandleNotFound registers a handler when the request route is not found
-	HandleNotFound(w http.ResponseWriter, req *http.Request, middleware []MiddlewareFunc)
+	HandleNotFound(w http.ResponseWriter, req *http.Request, msg string, code int, middleware []MiddlewareFunc)
 
 	// Match checks if the request matches the route pattern
-	Match(requestUrl string, path string) bool
+	//Match(requestUrl string, path string) bool
 
 	// MatchAndParse checks if the request matches the route path and returns a map of the parsed
 	MatchAndParse(requestUrl string, path string) (matchParams ParamsMapType, b bool)

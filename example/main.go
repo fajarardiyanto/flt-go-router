@@ -18,10 +18,15 @@ func main() {
 		})
 	})
 
-	r.GET("/test", func(w http.ResponseWriter, r *http.Request) error {
-		name := interfaces.GetQuery(r, "name")
+	r.GET("/test/:id/:guid", func(w http.ResponseWriter, r *http.Request) error {
+		name := interfaces.GetFormData(r, "name")
+		id := interfaces.GetParam(r, "id")
+		guid := interfaces.GetParam(r, "guid")
+
 		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
+			"id":   id,
 			"test": name,
+			"guid": guid,
 		})
 	})
 

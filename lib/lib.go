@@ -4,32 +4,31 @@ import (
 	"context"
 	"fmt"
 	loggerInterfaces "github.com/fajarardiyanto/flt-go-logger/interfaces"
-	log "github.com/fajarardiyanto/flt-go-logger/lib"
 	"github.com/fajarardiyanto/flt-go-router/interfaces"
 	"github.com/fajarardiyanto/flt-go-router/lib/tree"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type Router struct {
 	Prefix       string
+	Index        []string
+	Handler      http.Handler
 	Logger       loggerInterfaces.Logger
 	Middleware   []interfaces.MiddlewareFunc
 	Trees        map[string]*tree.Tree
 	NotFound     interfaces.Handler
 	PanicHandler func(w http.ResponseWriter, r *http.Request, err interface{})
+	sync.RWMutex
 }
 
 func New(version string) interfaces.Routers {
-	logger := log.NewLib()
-	logger.Init("HTTP Router")
-	logger.SetOutputFormat(loggerInterfaces.OutputFormatDefault)
-
 	interfaces.ShowVersion(version)
 
 	return &Router{
-		Logger: logger,
+		Logger: interfaces.GetLogger(),
 		Trees:  make(map[string]*tree.Tree),
 	}
 }
@@ -85,6 +84,9 @@ func (r *Router) NotFoundFunc(handler interfaces.Handler) {
 }
 
 func (r *Router) Handle(method string, path string, handle interfaces.Handler) {
+	r.Lock()
+	defer r.Unlock()
+
 	if _, ok := interfaces.METHOD[method]; !ok {
 		r.Logger.Error("invalid method").Quit()
 	}
@@ -108,6 +110,9 @@ func (r *Router) Use(middleware ...interfaces.MiddlewareFunc) {
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r.Lock()
+	defer r.Unlock()
+
 	requestUrl := req.URL.Path
 
 	if r.PanicHandler != nil {
@@ -119,7 +124,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if _, ok := r.Trees[req.Method]; !ok {
-		r.HandleNotFound(w, req, r.Middleware)
+		r.HandleNotFound(w, req, "method not allowed", 405, r.Middleware)
 		return
 	}
 
@@ -128,12 +133,12 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		node := nodes[0]
 		if node.Handle != nil {
 			if node.Path == requestUrl {
-				r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
+				r.Logger.Info("[%s][%s]", req.Method, requestUrl)
 				handle(w, req, node.Handle, node.Middleware)
 				return
 			}
 			if node.Path == requestUrl[1:] {
-				r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
+				r.Logger.Info("[%s][%s]", req.Method, requestUrl)
 				handle(w, req, node.Handle, node.Middleware)
 				return
 			}
@@ -147,7 +152,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		for _, n := range node {
 			if handler := n.Handle; handler != nil && n.Path != requestUrl {
 				if matchParamsMap, ok := r.MatchAndParse(requestUrl, n.Path); ok {
-					r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
+					r.Logger.Info("[%s][%s]", req.Method, requestUrl)
 					ctx := context.WithValue(req.Context(), interfaces.ContextKey, matchParamsMap)
 					req = req.WithContext(ctx)
 					handle(w, req, handler, n.Middleware)
@@ -157,16 +162,19 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	r.Logger.Trace("[%s][%s]", req.Method, requestUrl)
-	r.HandleNotFound(w, req, r.Middleware)
+	r.Logger.Info("[%s][%s]", req.Method, requestUrl)
+	r.HandleNotFound(w, req, "handler not found", 404, r.Middleware)
 }
 
-func (r *Router) HandleNotFound(w http.ResponseWriter, req *http.Request, middleware []interfaces.MiddlewareFunc) {
+func (r *Router) HandleNotFound(w http.ResponseWriter, req *http.Request, msg string, code int, middleware []interfaces.MiddlewareFunc) {
 	if r.NotFound != nil {
 		handle(w, req, r.NotFound, middleware)
 		return
 	}
-	http.NotFound(w, req)
+	interfaces.JSON(w, code, interfaces.APIResponseError{
+		Code:    code,
+		Message: msg,
+	})
 }
 
 func handle(w http.ResponseWriter, req *http.Request, handler interfaces.Handler, middleware []interfaces.MiddlewareFunc) {
@@ -180,10 +188,10 @@ func handle(w http.ResponseWriter, req *http.Request, handler interfaces.Handler
 	}
 }
 
-func (r *Router) Match(requestUrl string, path string) bool {
-	_, ok := r.MatchAndParse(requestUrl, path)
-	return ok
-}
+//func (r *Router) Match(requestUrl string, path string) bool {
+//	_, ok := r.MatchAndParse(requestUrl, path)
+//	return ok
+//}
 
 func (r *Router) MatchAndParse(requestUrl string, path string) (matchParams interfaces.ParamsMapType, b bool) {
 	var (
@@ -211,18 +219,16 @@ func (r *Router) MatchAndParse(requestUrl string, path string) (matchParams inte
 			matchStr := str
 			res := strings.Split(matchStr, ":")
 			matchName = append(matchName, res[1])
-			if res[1] == interfaces.IDKey {
-				pattern = pattern + "/" + "(" + interfaces.IDPattern + ")"
-			} else {
-				pattern = pattern + "/" + "(" + interfaces.DefaultPattern + ")"
-			}
+			pattern = pattern + "/" + "(" + interfaces.DefaultPattern + ")"
 		} else {
 			pattern = pattern + "/" + str
 		}
 	}
+
 	if strings.HasSuffix(requestUrl, "/") {
 		pattern = pattern + "/"
 	}
+
 	re := regexp.MustCompile(pattern)
 	if subMatch := re.FindSubmatch([]byte(requestUrl)); subMatch != nil {
 		if string(subMatch[0]) == requestUrl {
@@ -233,5 +239,6 @@ func (r *Router) MatchAndParse(requestUrl string, path string) (matchParams inte
 			return
 		}
 	}
+
 	return nil, false
 }

@@ -7,16 +7,17 @@ import (
 	"net/http"
 )
 
+// GetAllParams returns all route params stored in http.Request.
+func GetAllParams(r *http.Request) ParamsMapType {
+	if values, ok := r.Context().Value(ContextKey).(ParamsMapType); ok {
+		return values
+	}
+	return nil
+}
+
 // GetParam returns parameter from url using a key
 func GetParam(r *http.Request, key string) string {
-	params := r.Context().Value(KeyContextParams).([][]string)
-	for _, param := range params {
-		if param[0] == key {
-			return param[1]
-		}
-	}
-
-	return ""
+	return GetAllParams(r)[key]
 }
 
 // GetQuery returns data from query params using a key
@@ -32,8 +33,8 @@ func GetQuery(r *http.Request, key string, fallback ...string) string {
 	return query
 }
 
-// GetFormValue returns data from form using a key
-func GetFormValue(r *http.Request, key string, fallback ...string) string {
+// GetFormData returns data from form using a key
+func GetFormData(r *http.Request, key string, fallback ...string) string {
 	value := r.PostFormValue(key)
 	if value == "" {
 		if len(fallback) > 0 {
