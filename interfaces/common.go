@@ -4,7 +4,6 @@ import (
 	"fmt"
 	loggerInterfaces "github.com/fajarardiyanto/flt-go-logger/interfaces"
 	"github.com/shirou/gopsutil/v3/host"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -31,14 +30,7 @@ var (
 	BuildDate string
 )
 
-// GetAllParams returns all route params stored in http.Request.
-func GetAllParams(r *http.Request) ParamsMapType {
-	if values, ok := r.Context().Value(ContextKey).(ParamsMapType); ok {
-		return values
-	}
-	return nil
-}
-
+// ResolveAddress is to get server port from env or config.
 func ResolveAddress(addr []string, logger loggerInterfaces.Logger) string {
 	switch len(addr) {
 	case 0:
@@ -62,6 +54,7 @@ func ResolveAddress(addr []string, logger loggerInterfaces.Logger) string {
 	}
 }
 
+// ShowVersion is get version and info server when start time.
 func ShowVersion(ver string) {
 	const show = `[INFO] Server is starting
 ├── Version	         : %s
@@ -96,6 +89,7 @@ func init() {
 	}
 }
 
+// SetOSVersion is a get compiler name.
 func SetOSVersion() {
 	if info, err := host.Info(); err == nil {
 		OSBuildName = fmt.Sprintf("%s (%s)",
