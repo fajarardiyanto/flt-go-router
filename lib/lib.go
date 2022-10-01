@@ -171,6 +171,7 @@ func (r *Router) HandleNotFound(w http.ResponseWriter, req *http.Request, msg st
 		handle(w, req, r.NotFound, middleware)
 		return
 	}
+
 	interfaces.JSON(w, code, interfaces.APIResponseError{
 		Code:    code,
 		Message: msg,

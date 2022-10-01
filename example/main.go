@@ -13,6 +13,13 @@ func main() {
 	g := r.Group("/group")
 	g.GET("/ping", func(w http.ResponseWriter, r *http.Request) error {
 		name := interfaces.GetQuery(r, "name")
+		file, err := interfaces.GetFormFile(r, "file")
+		if err != nil {
+			GetLogger().Error(err)
+			return err
+		}
+
+		GetLogger().Info(file.Filename)
 		return interfaces.JSON(w, http.StatusOK, map[string]interface{}{
 			"query": name,
 		})

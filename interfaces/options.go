@@ -10,8 +10,6 @@ var (
 	logger loggerInterfaces.Logger
 
 	// DefaultPattern is pattern params query
-	// [\w-]+
-	// ([0-9a-zA-Z\\.\\_-]+)
 	DefaultPattern = `[\w._-]+`
 
 	METHOD = map[string]struct{}{
